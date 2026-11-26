@@ -32,6 +32,7 @@ import {
   PageHeader,
   StatusPill,
 } from "../components/UI.jsx";
+import { useToast } from "../components/Toast.jsx"; 
 
 const chartColors = ["#18766f", "#5473ad", "#d3914d", "#8d6ab1", "#4296a1"];
 const initialsDate = (date) => new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(date);
@@ -157,6 +158,7 @@ function DoseTimeline({ doses, medicines, onConfirm, busyDose }) {
 }
 
 export default function DashboardPage() {
+  const toast = useToast();
   const { data, loading, error, refresh } = useLoadData(dashboardData, []);
   const [busyDose, setBusyDose] = useState(null);
   const [mutationError, setMutationError] = useState("");
@@ -166,9 +168,11 @@ export default function DashboardPage() {
     setMutationError("");
     try {
       await api.logDose(doseId, "confirmed");
+      toast("Dose confirmed");
       await refresh();
     } catch (requestError) {
       setMutationError(requestError.message);
+      toast(requestError.message, "error");
     } finally {
       setBusyDose(null);
     }

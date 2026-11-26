@@ -4,13 +4,14 @@ import {
   CalendarDays,
   HeartHandshake,
   LayoutDashboard,
+  LogOut,
   MessageCircle,
   Pill,
   Plus,
 } from "lucide-react";
 import HealthStatus from "./HealthStatus.jsx";
 import useHealthStatus from "../hooks/useHealthStatus.js";
-
+import { useAuth } from "../context/AuthContext.jsx";
 const links = [
   { to: "/", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/medicines", label: "Medications", icon: Pill },
@@ -44,7 +45,7 @@ function Navigation({ mobile = false }) {
 
 export default function AppShell() {
   const health = useHealthStatus();
-
+  const { user, logout } = useAuth();
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -75,10 +76,13 @@ export default function AppShell() {
             <span>Your family care space</span>
           </div>
           <div className="topbar-actions">
-            <span className="privacy-chip">Private family workspace</span>
+            <span className="privacy-chip">Hi, {user?.name}</span>
             <NavLink className="button button-primary topbar-cta" to="/medicines">
               <Plus size={16} /> Add care detail
             </NavLink>
+            <button className="button button-quiet topbar-cta" onClick={logout}>
+              <LogOut size={15} /> Log out
+            </button>
           </div>
         </header>
         <main className="page-content"><Outlet /></main>
