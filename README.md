@@ -1,5 +1,7 @@
 # Elderease – Intelligent Family Care Coordination
 
+## 🌐 Live Website
+[Visit ElderEase](https://elder-ease-kappa.vercel.app)
 Elderease is a hackathon MVP for family care coordination. The repository has separate React/Vite, FastAPI REST, and MCP interfaces. The REST health route and MCP health tool call the same backend service function. The Phase 6 refill assistant uses the official Google Gen AI SDK and an MCP client connection to the existing FastMCP server; Telegram integration is not implemented.
 
 ## Project structure
