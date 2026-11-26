@@ -17,7 +17,7 @@ export function LoadingState({ label = "Loading your care information…" }) {
   return (
     <div className="state-card" role="status">
       <LoaderCircle className="spin" size={22} />
-      <span>{label}</span>
+      <span className="loading-copy">{label}<span className="loading-skeleton-bar" aria-hidden="true" /></span>
     </div>
   );
 }

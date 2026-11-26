@@ -54,7 +54,7 @@ export default function AssistantPage() {
   return (
     <>
       <PageHeader
-        eyebrow="GEMINI + MCP REFILL WORKFLOW"
+        eyebrow="GROQ + MCP REFILL WORKFLOW"
         title="Care assistant"
         description="Ask about scheduled medicine stock. Answers use the live refill forecast from Elderease."
       />
@@ -64,7 +64,7 @@ export default function AssistantPage() {
             <div className="assistant-avatar"><Sparkles size={20} /></div>
             <div>
               <strong>Elderease assistant</strong>
-              <span><i className={sending ? "assistant-status-busy" : ""} />{sending ? "Checking with Gemini + MCP" : "Ready for a refill question"}</span>
+              <span><i className={sending ? "assistant-status-busy" : ""} />{sending ? "Checking with Groq + MCP" : "Ready for a refill question"}</span>
             </div>
           </div>
           <div className="assistant-lock"><LockKeyhole size={15} /> API key stays on backend</div>
@@ -75,7 +75,7 @@ export default function AssistantPage() {
             <div className="assistant-welcome">
               <div className="assistant-welcome-icon"><MessageCircle size={23} /></div>
               <h2>Get a clear view of medicine coverage.</h2>
-              <p>Gemini answers using the real refill forecast returned by the connected MCP tool. Forecasts are estimates, not medical advice.</p>
+              <p>Groq answers using the real refill forecast returned by the connected MCP tool. Forecasts are estimates, not medical advice.</p>
               <button
                 className="example-question"
                 onClick={() => sendMessage(EXAMPLE_QUESTION)}
@@ -107,7 +107,7 @@ export default function AssistantPage() {
           {sending && (
             <div className="tool-running" role="status">
               <span className="assistant-message-mark"><Wrench size={13} /></span>
-              <span><i className="assistant-status-busy" /> Calling <strong>check_refill_status</strong>, then asking Gemini to explain its result…</span>
+              <span><i className="assistant-status-busy" /> Calling <strong>check_refill_status</strong>, then asking Groq to explain its result…<span className="typing-dots" aria-hidden="true"><i /><i /><i /></span></span>
             </div>
           )}
           {error && (
@@ -136,7 +136,7 @@ export default function AssistantPage() {
             <Send size={17} />
           </button>
         </form>
-        <div className="assistant-disclaimer"><LockKeyhole size={13} /> The tool result is shown with Gemini’s explanation. No API credentials are sent to this page.</div>
+        <div className="assistant-disclaimer"><LockKeyhole size={13} /> The tool result is shown with Groq’s explanation. No API credentials are sent to this page.</div>
       </section>
     </>
   );
@@ -146,39 +146,48 @@ function ToolResult({ result }) {
   const forecasts = result.tool_result?.forecasts || [];
 
   return (
-    <section className="tool-result-card" aria-label={`${result.tool_name} result`}>
-      <div className="tool-result-heading">
-        <div><Wrench size={14} /><strong>{result.tool_name}</strong><span>completed</span></div>
-        <StatusPill tone="success"><Check size={11} /> Real result</StatusPill>
-      </div>
-      {forecasts.length ? (
-        <div className="tool-forecast-list">
-          {forecasts.map((forecast) => (
-            <article className="tool-forecast-row" key={forecast.medicine_id}>
-              <div className="tool-forecast-title">
-                <strong>{forecast.medicine_name}</strong>
-                {forecast.urgency && <StatusPill tone={forecast.urgency === "CRITICAL" ? "danger" : ["URGENT", "UPCOMING"].includes(forecast.urgency) ? "warning" : "success"}>{forecast.urgency}</StatusPill>}
-              </div>
-              {forecast.forecast_available ? (
-                <div className="tool-forecast-facts">
-                  <span><ArrowDownToLine size={13} />{forecast.current_available_stock} units now</span>
-                  <span><Clock3 size={13} />{forecast.expected_consumption} expected in 7 days</span>
-                  <span><CalendarClock size={13} />Depletion: {formatDateTime(forecast.estimated_depletion_at)}</span>
-                </div>
-              ) : (
-                <p className="tool-forecast-warning">{forecast.data_warnings?.join("; ") || "Forecast unavailable."}</p>
-              )}
-            </article>
-          ))}
+    <details className="tool-result-card">
+      <summary className="tool-result-heading" aria-label={`${result.tool_name} result`}>
+        <div className="tool-result-title">
+          <span className="tool-result-icon"><Wrench size={14} /></span>
+          <span><strong>Refill analysis</strong><small>{result.tool_name} · live tool result</small></span>
         </div>
-      ) : (
-        <p className="tool-forecast-warning">The MCP tool found no medicine forecasts.</p>
-      )}
-      <details className="tool-raw-result">
-        <summary>View complete tool response</summary>
-        <pre>{JSON.stringify(result.tool_result, null, 2)}</pre>
-      </details>
-      <div className="tool-model-label">Response generated by {result.model}</div>
-    </section>
+        <span className="tool-result-summary-end">
+          <StatusPill tone="success"><Check size={11} /> Verified data</StatusPill>
+          <span className="tool-chevron" aria-hidden="true" />
+        </span>
+      </summary>
+      <div className="tool-result-content">
+        <p className="tool-data-caption">Medicine and stock details below are returned directly by the refill forecast tool. Groq’s explanation is shown separately above.</p>
+        {forecasts.length ? (
+          <div className="tool-forecast-list">
+            {forecasts.map((forecast) => (
+              <article className="tool-forecast-row" key={forecast.medicine_id}>
+                <div className="tool-forecast-title">
+                  <strong>{forecast.medicine_name}</strong>
+                  {forecast.urgency && <StatusPill tone={forecast.urgency === "CRITICAL" ? "danger" : ["URGENT", "UPCOMING"].includes(forecast.urgency) ? "warning" : "success"}>{forecast.urgency}</StatusPill>}
+                </div>
+                {forecast.forecast_available ? (
+                  <div className="tool-forecast-facts">
+                    <span><ArrowDownToLine size={13} />{forecast.current_available_stock} units now</span>
+                    <span><Clock3 size={13} />{forecast.expected_consumption} expected in 7 days</span>
+                    <span><CalendarClock size={13} />Depletion: {formatDateTime(forecast.estimated_depletion_at)}</span>
+                  </div>
+                ) : (
+                  <p className="tool-forecast-warning">{forecast.data_warnings?.join("; ") || "Forecast unavailable."}</p>
+                )}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="tool-forecast-warning">The MCP tool found no medicine forecasts.</p>
+        )}
+        <details className="tool-raw-result">
+          <summary>View complete tool response</summary>
+          <pre>{JSON.stringify(result.tool_result, null, 2)}</pre>
+        </details>
+        <div className="tool-model-label">Explanation generated by {result.model}</div>
+      </div>
+    </details>
   );
 }

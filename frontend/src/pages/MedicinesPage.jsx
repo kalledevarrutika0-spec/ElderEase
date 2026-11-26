@@ -261,16 +261,44 @@ function updateForm(setDialog, name, value) {
 
 function MedicineCard({ medicine, forecast, caregiver, onEdit, onStock }) {
   const urgency = forecast?.urgency;
-  const tone = urgency === "CRITICAL" ? "danger" : ["URGENT", "UPCOMING"].includes(urgency) ? "warning" : "success";
+  const tone = !forecast?.forecast_available
+    ? "muted"
+    : urgency === "CRITICAL"
+      ? "danger"
+      : ["URGENT", "UPCOMING"].includes(urgency)
+        ? "warning"
+        : "success";
   const stock = Number(medicine.current_stock);
   const threshold = Number(medicine.refill_threshold);
   const fill = threshold > 0 ? Math.min(100, (stock / (threshold * 2)) * 100) : stock > 0 ? 100 : 0;
   const schedule = (medicine.scheduled_times || []).map(formatTime).join(" · ");
 
   return (
-    <article className="surface-card medicine-card">
+    <article className={`surface-card medicine-card medicine-card-${tone}`}>
       <div className="medicine-card-top">
-        <div className="medicine-avatar"><Pill size={19} /></div>
+        <div className="medicine-illustration" aria-hidden="true">
+          <svg viewBox="0 0 146 82" role="presentation">
+            <rect x="1" y="1" width="144" height="80" rx="14" fill="var(--surface)" />
+            <circle cx="119" cy="18" r="13" fill="var(--surface-raised)" />
+            <path d="M82 69c13-19 35-24 59-16v27H82V69Z" fill="#E0E9DE" />
+            <rect x="23" y="29" width="31" height="39" rx="7" fill="#D6E4D6" stroke="#9BB7A3" strokeWidth="1.5" />
+            <rect x="29" y="21" width="19" height="10" rx="3" fill="#B7CEBC" />
+            <rect x="28" y="42" width="21" height="13" rx="3" fill="var(--surface-raised)" />
+            <path d="M33 48.5h11" stroke="#167C70" strokeWidth="2" strokeLinecap="round" />
+            <g transform="rotate(-27 78 46)">
+              <rect x="62" y="39" width="33" height="14" rx="7" fill="#D8B875" />
+              <path d="M78.5 39v14" stroke="#FFFEFA" strokeWidth="1.5" />
+              <path d="M64 46h13" stroke="#F7E8C8" strokeWidth="1" />
+            </g>
+            <rect x="105" y="31" width="25" height="36" rx="8" fill="#DDE9E2" stroke="#9DBEB1" strokeWidth="1.5" />
+            <circle cx="113" cy="41" r="3" fill="#167C70" stroke="#F7F5EF" />
+            <circle cx="122" cy="41" r="3" fill="#167C70" stroke="#F7F5EF" />
+            <circle cx="113" cy="51" r="3" fill="#167C70" stroke="#F7F5EF" />
+            <circle cx="122" cy="51" r="3" fill="#167C70" stroke="#F7F5EF" />
+            <circle cx="113" cy="60" r="3" fill="#167C70" stroke="#F7F5EF" />
+            <circle cx="122" cy="60" r="3" fill="#167C70" stroke="#F7F5EF" />
+          </svg>
+        </div>
         <button className="icon-button" onClick={onEdit} aria-label={`Edit ${medicine.name}`}><Pencil size={16} /></button>
       </div>
       <div className="medicine-title-row"><div><h2>{medicine.name}</h2><p>{medicine.dosage}</p></div><StatusPill tone={tone}>{urgency || "NO FORECAST"}</StatusPill></div>

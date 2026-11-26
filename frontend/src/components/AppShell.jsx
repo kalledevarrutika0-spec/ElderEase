@@ -1,22 +1,24 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
 import {
-  Activity,
   CalendarDays,
   HeartHandshake,
   LayoutDashboard,
+  Leaf,
+  LockKeyhole,
   MessageCircle,
   Pill,
   Plus,
+  UsersRound,
 } from "lucide-react";
 import HealthStatus from "./HealthStatus.jsx";
 import useHealthStatus from "../hooks/useHealthStatus.js";
 
 const links = [
-  { to: "/", label: "Overview", icon: LayoutDashboard, end: true },
-  { to: "/medicines", label: "Medications", icon: Pill },
-  { to: "/calendar", label: "Care calendar", icon: CalendarDays },
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/medicines", label: "Medicines", icon: Pill },
+  { to: "/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/family", label: "Family", icon: HeartHandshake },
-  { to: "/assistant", label: "AI assistant", icon: MessageCircle },
+  { to: "/assistant", label: "AI Assistant", icon: MessageCircle },
 ];
 
 function Navigation({ mobile = false }) {
@@ -49,22 +51,26 @@ export default function AppShell() {
     <div className="app-shell">
       <aside className="sidebar">
         <Link className="brand-lockup" to="/" aria-label="Elderease overview">
-          <span className="brand-mark"><Activity size={21} /></span>
+          <span className="brand-mark"><Leaf size={21} strokeWidth={1.8} /></span>
           <span>
             <strong>Elderease</strong>
             <small>Care, together</small>
           </span>
         </Link>
-        <div className="workspace-label">WORKSPACE</div>
+        <div className="workspace-switcher" aria-label="Current family workspace">
+          <span className="workspace-switcher-icon"><UsersRound size={17} /></span>
+          <span><small>SHARED CARE SPACE</small><strong>Family workspace</strong></span>
+        </div>
+        <div className="workspace-label">YOUR CARE</div>
         <Navigation />
         <div className="sidebar-bottom">
           <div className="sidebar-help">
             <div className="help-icon"><HeartHandshake size={18} /></div>
-            <p>Care is a team effort.</p>
-            <span>Keep everyone in the loop.</span>
+            <p>Care, shared with care.</p>
+            <span>Every small update helps your circle.</span>
           </div>
           <HealthStatus status={health.status} error={health.error} compact />
-          <div className="sidebar-version">ELDEREASE · FAMILY CARE</div>
+          <div className="sidebar-version"><span /> ELDEREASE · FAMILY CARE</div>
         </div>
       </aside>
 
@@ -75,9 +81,9 @@ export default function AppShell() {
             <span>Your family care space</span>
           </div>
           <div className="topbar-actions">
-            <span className="privacy-chip">Private family workspace</span>
+            <span className="privacy-chip"><LockKeyhole size={13} /> Private family workspace</span>
             <NavLink className="button button-primary topbar-cta" to="/medicines">
-              <Plus size={16} /> Add care detail
+              <Plus size={16} /> Add medicine
             </NavLink>
           </div>
         </header>

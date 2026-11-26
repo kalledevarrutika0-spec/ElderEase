@@ -7,8 +7,6 @@ import {
   CheckCircle2,
   Clock3,
   Pill,
-  RefreshCw,
-  ShieldCheck,
   Sparkles,
   TriangleAlert,
 } from "lucide-react";
@@ -29,11 +27,10 @@ import {
   EmptyState,
   ErrorState,
   LoadingState,
-  PageHeader,
   StatusPill,
 } from "../components/UI.jsx";
 
-const chartColors = ["#18766f", "#5473ad", "#d3914d", "#8d6ab1", "#4296a1"];
+const chartColors = ["#145C4A", "#167C70", "#386F5D", "#4F7584", "#6C8F72"];
 const initialsDate = (date) => new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(date);
 const itemsOf = (page) => page?.items ?? [];
 
@@ -83,21 +80,32 @@ function StockForecastChart({ forecasts }) {
     return days;
   }, [availableForecasts]);
 
+  if (!forecasts.length) {
+    return (
+      <EmptyState
+        icon={Pill}
+        title="No medicines to forecast yet"
+        description="Add a medicine to see its projected stock coverage here."
+        action={<Link className="text-link" to="/medicines">Add a medicine <ArrowRight size={14} /></Link>}
+      />
+    );
+  }
+
   if (!availableForecasts.length) {
-    return <EmptyState title="Forecasts unavailable" description="Add a valid medicine schedule to see projected stock coverage." />;
+    return <EmptyState title="Schedules need a quick review" description="Check the medicine schedules to make stock coverage available." />;
   }
 
   return (
     <div className="chart-wrap" aria-label="Seven-day projected medicine stock coverage">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 10, right: 12, left: -18, bottom: 0 }}>
-          <CartesianGrid stroke="#e9efed" strokeDasharray="4 5" vertical={false} />
-          <XAxis dataKey="day" tickLine={false} axisLine={false} tick={{ fill: "#82918e", fontSize: 11 }} />
-          <YAxis domain={[0, 100]} tickLine={false} axisLine={false} tick={{ fill: "#82918e", fontSize: 11 }} tickFormatter={(value) => `${value}%`} />
+          <CartesianGrid stroke="#E2E3D9" strokeDasharray="4 5" vertical={false} />
+          <XAxis dataKey="day" tickLine={false} axisLine={false} tick={{ fill: "#697A75", fontSize: 11 }} />
+          <YAxis domain={[0, 100]} tickLine={false} axisLine={false} tick={{ fill: "#697A75", fontSize: 11 }} tickFormatter={(value) => `${value}%`} />
           <Tooltip
             formatter={(value, name) => [`${Number(value).toFixed(0)}%`, name]}
-            labelStyle={{ color: "#203532", fontWeight: 700 }}
-            contentStyle={{ border: "1px solid #e6eeeb", borderRadius: 12, boxShadow: "0 10px 24px #172f2b12" }}
+            labelStyle={{ color: "#183D32", fontWeight: 700 }}
+            contentStyle={{ border: "1px solid #E2E3D9", borderRadius: 12, background: "#FFFEFA", color: "#183D32", boxShadow: "0 10px 24px rgb(24 61 50 / 12%)" }}
           />
           {availableForecasts.map((forecast, index) => (
             <Line
@@ -122,7 +130,14 @@ function DoseTimeline({ doses, medicines, onConfirm, busyDose }) {
   const sorted = [...doses].sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
 
   if (!sorted.length) {
-    return <EmptyState icon={CheckCircle2} title="Nothing scheduled today" description="Your family's medication schedule is clear for now." />;
+    return (
+      <EmptyState
+        icon={CheckCircle2}
+        title="Nothing scheduled today"
+        description="Your family's medication schedule is clear for now."
+        action={<Link className="text-link" to="/medicines">Review medicines <ArrowRight size={14} /></Link>}
+      />
+    );
   }
 
   return (
@@ -182,36 +197,44 @@ export default function DashboardPage() {
     .sort((a, b) => new Date(a.appointment_datetime) - new Date(b.appointment_datetime))
     .slice(0, 3);
   const alerts = forecasts.filter((forecast) => ["CRITICAL", "URGENT", "UPCOMING"].includes(forecast.urgency));
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning, family" : hour < 18 ? "Good afternoon, family" : "Good evening, family";
+  const hasAvailableForecasts = forecasts.some((forecast) => forecast.forecast_available);
   const dateLabel = new Intl.DateTimeFormat(undefined, { weekday: "long", month: "long", day: "numeric" }).format(new Date());
+  const pendingDoseCount = overview?.pending_doses_today;
+  const pendingDoseLabel = pendingDoseCount == null
+    ? "Dose status unavailable"
+    : pendingDoseCount === 0
+      ? "Today's doses are up to date"
+      : `${pendingDoseCount} dose${pendingDoseCount === 1 ? "" : "s"} to confirm today`;
 
   return (
-    <>
-      <PageHeader
-        eyebrow={dateLabel.toUpperCase()}
-        title={greeting}
-        description="Here’s a clear view of the care your family is coordinating."
-        actions={<button className="button button-quiet" onClick={refresh}><RefreshCw size={15} /> Refresh</button>}
-      />
+    <div className="dashboard-page">
       {loading && <LoadingState />}
       {error && <ErrorState error={error} onRetry={refresh} />}
       {data && (
         <>
-          <div className="welcome-strip">
-            <div className="welcome-icon"><Sparkles size={20} /></div>
-            <div><strong>Small moments make a big difference.</strong><span>Your shared care plan is up to date with the latest family activity.</span></div>
-            <ShieldCheck className="welcome-shield" size={22} />
-          </div>
-          <section className="metric-grid" aria-label="Care overview metrics">
-            <Metric icon={Pill} label="Medicines tracked" value={overview.total_medicine_count} hint="In your care plan" tone="teal" />
-            <Metric icon={CheckCircle2} label="Doses confirmed" value={overview.confirmed_doses_today} hint="Today" tone="green" />
-            <Metric icon={Clock3} label="Awaiting confirmation" value={overview.pending_doses_today} hint="Today's schedule" tone="amber" />
-            <Metric icon={CalendarDays} label="Upcoming visits" value={overview.upcoming_appointment_count} hint={`${overview.low_stock_medicine_count} low-stock medicines`} tone="blue" />
+          <section className="dashboard-hero dashboard-enter" aria-labelledby="dashboard-hero-title">
+            <div className="dashboard-hero-copy">
+              <span className="dashboard-hero-eyebrow">{dateLabel.toUpperCase()} <i /> YOUR FAMILY CARE SPACE</span>
+              <h1 id="dashboard-hero-title">Good care is built together.</h1>
+              <p>Keep schedules, refills, and family updates in sync — one thoughtful step at a time.</p>
+              <div className="dashboard-hero-actions">
+                <Link className="dashboard-hero-action" to="/medicines">Review care plan <ArrowRight size={15} /></Link>
+                <span className="dashboard-hero-status">
+                  {pendingDoseCount === 0 ? <CheckCircle2 size={15} /> : <Clock3 size={15} />}
+                  {pendingDoseLabel}
+                </span>
+              </div>
+            </div>
+          </section>
+          <section className="dashboard-stat-grid dashboard-enter" aria-label="Care overview">
+            <Metric icon={Pill} label="Medicines tracked" value={overview.total_medicine_count} hint="in the shared care plan" tone="green" />
+            <Metric icon={CheckCircle2} label="Doses confirmed" value={overview.confirmed_doses_today} hint="today" tone="teal" />
+            <Metric icon={Clock3} label="Awaiting confirmation" value={overview.pending_doses_today} hint="today" tone="amber" />
+            <Metric icon={CalendarDays} label="Upcoming visits" value={overview.upcoming_appointment_count} hint="on the family calendar" tone="blue" />
           </section>
           {mutationError && <div className="inline-error" role="alert">{mutationError}</div>}
           <div className="dashboard-grid">
-            <section className="surface-card dashboard-timeline">
+            <section className="surface-card dashboard-timeline" id="today-medication">
               <CardHeading title="Today’s medication" subtitle="A shared view of today’s schedule" side={<Link className="text-link" to="/medicines">All medicines <ArrowRight size={14} /></Link>} />
               <DoseTimeline doses={data.doses} medicines={medicines} onConfirm={confirmDose} busyDose={busyDose} />
             </section>
@@ -225,7 +248,7 @@ export default function DashboardPage() {
               </div>
               <Link className="text-link forecast-link" to="/medicines">View refill forecasts <ArrowRight size={14} /></Link>
             </section>
-            <section className="surface-card alert-card">
+            <section className={`surface-card alert-card${alerts.length ? " alert-card-active" : ""}`}>
               <CardHeading title="Refill watch" subtitle="Based on upcoming scheduled doses" side={<Link className="text-link" to="/medicines">View all <ArrowRight size={14} /></Link>} />
               {alerts.length ? (
                 <div className="compact-list">
@@ -237,8 +260,17 @@ export default function DashboardPage() {
                     </Link>
                   ))}
                 </div>
+              ) : !forecasts.length ? (
+                <EmptyState
+                  icon={Pill}
+                  title="No refill forecasts yet"
+                  description="Add a medicine to start tracking refill timing."
+                  action={<Link className="text-link" to="/medicines">Open medicines <ArrowRight size={14} /></Link>}
+                />
+              ) : hasAvailableForecasts ? (
+                <EmptyState title="No refill alerts right now" description="Current medicine forecasts are above their refill thresholds." />
               ) : (
-                <EmptyState title="All clear for now" description="No medicines are currently approaching their refill threshold." />
+                <EmptyState title="Forecasts need attention" description="Review medicine schedules to calculate refill urgency." />
               )}
             </section>
             <section className="surface-card appointment-card">
@@ -252,7 +284,13 @@ export default function DashboardPage() {
                     </div>
                   ))}
                 </div>
-              ) : <EmptyState title="No upcoming appointments" description="Visits added to the family calendar appear here." />}
+              ) : (
+                <EmptyState
+                  title="No upcoming appointments"
+                  description="Visits added to the family calendar appear here."
+                  action={<Link className="text-link" to="/calendar">Open calendar <ArrowRight size={14} /></Link>}
+                />
+              )}
             </section>
             <section className="surface-card activity-card">
               <CardHeading title="Family activity" subtitle="Recent updates from your care circle" side={<Link className="text-link" to="/family">See family <ArrowRight size={14} /></Link>} />
@@ -270,17 +308,16 @@ export default function DashboardPage() {
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }
 
 function Metric({ icon: Icon, label, value, hint, tone }) {
   return (
-    <article className="metric-card">
-      <div className={`metric-icon metric-${tone}`}><Icon size={18} /></div>
-      <div className="metric-label">{label}</div>
-      <div className="metric-value">{value ?? "—"}</div>
-      <div className="metric-hint">{hint}</div>
+    <article className={`care-stat care-stat-${tone}`}>
+      <div className="care-stat-label"><Icon size={15} /><span>{label}</span></div>
+      <strong className="care-stat-value">{value ?? "—"}</strong>
+      <span className="care-stat-hint">{hint}</span>
     </article>
   );
 }

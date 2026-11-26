@@ -77,7 +77,7 @@ All REST routes are under `/api`. FastAPI provides interactive documentation at 
 | GET, POST | `/api/medicines/{medicine_id}/stock` | Read stock history or record a purchase/correction |
 | GET | `/api/medicines/refill-forecast` | Forecast refills for all medicines |
 | GET | `/api/medicines/{medicine_id}/refill-forecast` | Forecast a medicine refill |
-| POST | `/api/assistant/chat` | Ask Gemini about refill status using the `check_refill_status` MCP tool |
+| POST | `/api/assistant/chat` | Ask Groq about refill status using the `check_refill_status` MCP tool |
 | GET | `/api/doses/today` | List today's scheduled doses |
 | POST | `/api/doses/{dose_id}/log` | Log pending, confirmed, delayed, or skipped status |
 | GET, POST, PUT, DELETE | `/api/appointments` and `/api/appointments/{appointment_id}` | Manage appointments and caregiver assignments |
@@ -97,9 +97,9 @@ The response includes the upcoming scheduled doses, expected seven-day consumpti
 
 ## Phase 6 refill assistant
 
-The Assistant page sends chat messages to `POST /api/assistant/chat`. The backend checks `GEMINI_API_KEY` from `backend/.env`, starts an MCP stdio client connection to the existing FastMCP server, discovers and calls `check_refill_status`, then asks Gemini to explain that returned forecast. The response includes the assistant message, tool name, and actual tool result; the frontend displays the result alongside Gemini’s explanation. Missing Gemini configuration or MCP/Gemini failures return explicit errors rather than generated fallback answers. Gemini credentials remain on the backend.
+The Assistant page sends chat messages to `POST /api/assistant/chat`. The backend checks `GROQ_API_KEY` from `backend/.env`, starts an MCP stdio client connection to the existing FastMCP server, discovers and calls `check_refill_status`, then asks Groq to explain that returned forecast through the Responses API using the OpenAI Python SDK. The response includes the assistant message, tool name, and actual tool result; the frontend displays the result alongside Groq’s explanation. Missing Groq configuration or MCP/Groq failures return explicit errors rather than generated fallback answers. Groq credentials remain on the backend.
 
-Set `GEMINI_API_KEY` in `backend/.env` before using the assistant. `GEMINI_MODEL` defaults to `gemini-2.5-flash`. Copying `backend/.env.example` to `backend/.env` provides placeholders, not a working API key.
+Set `GROQ_API_KEY` in `backend/.env` before using the assistant. `GROQ_BASE_URL` defaults to `https://api.groq.com/openai/v1`; `GROQ_MODEL` defaults to `openai/gpt-oss-20b`. Both can be changed without editing code. Copying `backend/.env.example` to `backend/.env` provides placeholders, not a working API key.
 
 ## Run backend tests
 
@@ -125,7 +125,7 @@ Open the Vite URL printed in the terminal (normally `http://localhost:5173`). Th
 
 ## Phase 5 interactive dashboard
 
-The frontend includes responsive Overview, Medications, Care calendar, Family coordination, and AI assistant pages. The Overview and care pages read from the documented REST endpoints; medicine, appointment, dose confirmation, stock adjustment, and notification acknowledgement actions refresh affected data after success. The medicine chart visualizes the seven-day refill forecasts returned by the backend. The AI assistant uses the Phase 6 Gemini/MCP workflow and displays the actual tool result.
+The frontend includes responsive Overview, Medications, Care calendar, Family coordination, and AI assistant pages. The Overview and care pages read from the documented REST endpoints; medicine, appointment, dose confirmation, stock adjustment, and notification acknowledgement actions refresh affected data after success. The medicine chart visualizes the seven-day refill forecasts returned by the backend. The AI assistant uses the Phase 6 Groq/MCP workflow and displays the actual tool result.
 
 The frontend uses React Router, Lucide icons, and Recharts. The API base URL can be set with `VITE_API_BASE_URL` in `frontend/.env`; the default is `http://127.0.0.1:8000`.
 
@@ -144,7 +144,7 @@ The MCP server uses the Python MCP SDK over stdio and exposes health and refill-
 ## Configuration and scope
 
 - Copy each `.env.example` to `.env` and supply credentials locally. Never commit `.env` files.
-- `GEMINI_API_KEY` is a backend-only secret used by the Phase 6 refill assistant; Telegram variables remain reserved placeholders.
+- `GROQ_API_KEY` is a backend-only secret used by the Phase 6 refill assistant; `GROQ_MODEL` selects the model and `GROQ_BASE_URL` configures the OpenAI-compatible Groq API endpoint. Telegram variables remain reserved placeholders.
 - Seed names, appointments, messages, and inventory are synthetic demo data, not real medical records. Refill forecasts are calculated on request and not stored.
 - SQLite configuration and SQLAlchemy sessions are centralized in `backend/app/database/`.
 - The backend CORS allowlist is configured through `CORS_ORIGINS` in `backend/.env`.
