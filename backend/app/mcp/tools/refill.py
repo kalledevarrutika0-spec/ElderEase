@@ -10,18 +10,26 @@ from app.services.refill_engine import get_refill_forecast, list_refill_forecast
 def _check_refill_status(
     session: Session,
     medicine_id: int | None = None,
+    family_id: int | None = None,
 ) -> dict[str, Any]:
     if medicine_id is not None:
-        forecast = get_refill_forecast(session, medicine_id)
+        forecast = get_refill_forecast(
+            session, medicine_id, family_id=family_id
+        )
         return {
             "total": 1,
             "forecasts": [forecast.model_dump(mode="json")],
         }
 
-    forecasts, total = list_refill_forecasts(session, offset=0, limit=500)
+    forecasts, total = list_refill_forecasts(
+        session, offset=0, limit=500, family_id=family_id
+    )
     while len(forecasts) < total:
         page, _ = list_refill_forecasts(
-            session, offset=len(forecasts), limit=500
+            session,
+            offset=len(forecasts),
+            limit=500,
+            family_id=family_id,
         )
         if not page:
             break
@@ -37,7 +45,10 @@ def _check_refill_status(
 
 def register_refill_tools(server: FastMCP) -> None:
     @server.tool()
-    def check_refill_status(medicine_id: int | None = None) -> dict[str, Any]:
+    def check_refill_status(
+        medicine_id: int | None = None,
+        family_id: int | None = None,
+    ) -> dict[str, Any]:
         """Return the existing refill forecast for one medicine or all medicines."""
         with SessionLocal() as session:
-            return _check_refill_status(session, medicine_id)
+            return _check_refill_status(session, medicine_id, family_id)

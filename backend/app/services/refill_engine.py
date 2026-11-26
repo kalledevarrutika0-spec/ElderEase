@@ -23,9 +23,12 @@ def get_refill_forecast(
     session: Session,
     medicine_id: int,
     now: datetime | None = None,
+    family_id: int | None = None,
 ) -> RefillForecast:
     medicine = session.get(Medicine, medicine_id)
     if medicine is None:
+        raise NotFoundError(f"Medicine {medicine_id} was not found.")
+    if family_id is not None and medicine.family_id != family_id:
         raise NotFoundError(f"Medicine {medicine_id} was not found.")
     return _build_forecast(session, medicine, as_utc(now or utc_now()))
 
@@ -35,13 +38,19 @@ def list_refill_forecasts(
     offset: int,
     limit: int,
     now: datetime | None = None,
+    family_id: int | None = None,
 ) -> tuple[list[RefillForecast], int]:
+    statement = select(Medicine)
+    count_statement = select(func.count()).select_from(Medicine)
+    if family_id is not None:
+        statement = statement.where(Medicine.family_id == family_id)
+        count_statement = count_statement.where(Medicine.family_id == family_id)
     medicines = list(
         session.scalars(
-            select(Medicine).order_by(Medicine.id).offset(offset).limit(limit)
+            statement.order_by(Medicine.id).offset(offset).limit(limit)
         )
     )
-    total = int(session.scalar(select(func.count()).select_from(Medicine)))
+    total = int(session.scalar(count_statement))
     forecast_at = as_utc(now or utc_now())
     return [
         _build_forecast(session, medicine, forecast_at) for medicine in medicines

@@ -8,6 +8,7 @@ from app.models.enums import (
     NotificationStatus,
     StockTransactionType,
 )
+from app.models.family import FamilyMember, FamilyProfile
 from app.models.medicine import Medicine
 from app.models.notification import Notification
 from app.models.stock_transaction import StockTransaction
@@ -19,6 +20,8 @@ __all__ = [
     "Caregiver",
     "DoseLog",
     "DoseStatus",
+    "FamilyMember",
+    "FamilyProfile",
     "Medicine",
     "Notification",
     "NotificationStatus",

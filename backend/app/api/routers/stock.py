@@ -5,6 +5,9 @@ from app.api.responses import COMMON_ERROR_RESPONSES
 from app.database import get_db
 from app.schemas.stock import MedicineStockRead, StockAdjustmentRequest
 from app.services.stock_service import adjust_medicine_stock, get_medicine_stock
+from app.core.auth import get_family_member
+from app.models import Caregiver, FamilyMember, Medicine
+from app.services.errors import NotFoundError
 
 router = APIRouter(
     prefix="/medicines",
@@ -21,8 +24,11 @@ router = APIRouter(
 def read_medicine_stock(
     medicine_id: int = Path(gt=0),
     session: Session = Depends(get_db),
+    member: FamilyMember = Depends(get_family_member),
 ) -> MedicineStockRead:
-    medicine, transactions = get_medicine_stock(session, medicine_id)
+    medicine, transactions = get_medicine_stock(
+        session, medicine_id, member.family_id
+    )
     return MedicineStockRead(
         medicine_id=medicine.id,
         current_stock=medicine.current_stock,
@@ -40,8 +46,11 @@ def add_stock_transaction(
     data: StockAdjustmentRequest,
     medicine_id: int = Path(gt=0),
     session: Session = Depends(get_db),
+    member: FamilyMember = Depends(get_family_member),
 ) -> MedicineStockRead:
-    medicine, transactions = adjust_medicine_stock(session, medicine_id, data)
+    medicine, transactions = adjust_medicine_stock(
+        session, medicine_id, data, member.family_id
+    )
     return MedicineStockRead(
         medicine_id=medicine.id,
         current_stock=medicine.current_stock,

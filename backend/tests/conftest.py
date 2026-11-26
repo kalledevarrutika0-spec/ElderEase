@@ -1,9 +1,10 @@
 from datetime import datetime, time, timedelta, timezone
 from decimal import Decimal
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -17,7 +18,10 @@ from app.models import (
     DoseStatus,
     Medicine,
     Notification,
+    FamilyProfile,
+    FamilyMember,
 )
+from app.core.auth import get_family_member
 
 
 @pytest.fixture
@@ -41,28 +45,61 @@ def api():
         autocommit=False,
     )
     previous_overrides = app.dependency_overrides.copy()
-
     def override_get_db():
         with test_session_factory() as session:
             yield session
 
+    def override_get_family_member(session=None):
+        with test_session_factory() as current_session:
+            member = current_session.scalar(
+                select(FamilyMember).where(FamilyMember.auth_user_id == "test-user")
+            )
+            return SimpleNamespace(
+                family_id=member.family_id,
+                caregiver_id=member.caregiver_id,
+            )
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_family_member] = override_get_family_member
 
     now = datetime.now(timezone.utc)
     day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     with test_session_factory.begin() as session:
+        profile = FamilyProfile(
+            family_name="Test Family",
+            elder_name="Test Elder",
+            elder_age=78,
+            elder_care_notes="Synthetic test profile.",
+            invite_code="TESTFAMILY1",
+            primary_caregiver_id=None,
+        )
+        session.add(profile)
+        session.flush()
         daughter = Caregiver(
             name="Dara Demo",
             relationship="daughter",
             email="dara.demo@example.invalid",
+            family_id=profile.id,
         )
         son = Caregiver(
             name="Sam Demo",
             relationship="son",
             email="sam.demo@example.invalid",
+            family_id=profile.id,
         )
         session.add_all([daughter, son])
         session.flush()
+        member = FamilyMember(
+            family_id=profile.id,
+            caregiver_id=daughter.id,
+            auth_user_id="test-user",
+            role="Primary caregiver",
+            relationship="daughter",
+            is_primary=True,
+        )
+        session.add(member)
+        session.flush()
+        profile.primary_caregiver_id = daughter.id
 
         medicine = Medicine(
             name="Demo Medicine One",
@@ -73,6 +110,7 @@ def api():
             current_stock=Decimal("10"),
             refill_threshold=Decimal("3"),
             assigned_caregiver=daughter,
+            family_id=profile.id,
         )
         low_stock_medicine = Medicine(
             name="Demo Medicine Two",
@@ -83,6 +121,7 @@ def api():
             current_stock=Decimal("1"),
             refill_threshold=Decimal("4"),
             assigned_caregiver=son,
+            family_id=profile.id,
         )
         session.add_all([medicine, low_stock_medicine])
         session.flush()
@@ -131,6 +170,7 @@ def api():
             appointment_datetime=now + timedelta(days=5),
             assigned_caregiver=daughter,
             status=AppointmentStatus.SCHEDULED,
+            family_id=profile.id,
         )
         notification = Notification(
             recipient=daughter,

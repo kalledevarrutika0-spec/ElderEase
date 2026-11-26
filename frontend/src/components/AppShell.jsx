@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import HealthStatus from "./HealthStatus.jsx";
 import useHealthStatus from "../hooks/useHealthStatus.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -46,6 +47,7 @@ function Navigation({ mobile = false }) {
 
 export default function AppShell() {
   const health = useHealthStatus();
+  const { user, logout } = useAuth();
 
   return (
     <div className="app-shell">
@@ -82,9 +84,13 @@ export default function AppShell() {
           </div>
           <div className="topbar-actions">
             <span className="privacy-chip"><LockKeyhole size={13} /> Private family workspace</span>
+            {user?.email && <span className="topbar-user">{user.email}</span>}
             <NavLink className="button button-primary topbar-cta" to="/medicines">
               <Plus size={16} /> Add medicine
             </NavLink>
+            <button className="button button-quiet topbar-cta" type="button" onClick={logout}>
+              Log out
+            </button>
           </div>
         </header>
         <main className="page-content"><Outlet /></main>

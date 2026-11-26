@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, func
+from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship as orm_relationship
 
 from app.database import Base
@@ -16,6 +16,14 @@ class Caregiver(Base):
     relationship: Mapped[str] = mapped_column(String(40), nullable=False)
     email: Mapped[str | None] = mapped_column(
         String(255), nullable=True, unique=True
+    )
+    auth_user_id: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, unique=True
+    )
+    family_id: Mapped[int | None] = mapped_column(
+        ForeignKey("family_profiles.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
     )
     phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
     telegram_chat_id: Mapped[str | None] = mapped_column(String(64), nullable=True)

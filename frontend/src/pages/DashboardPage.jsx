@@ -41,12 +41,14 @@ function dashboardData() {
     api.dosesToday(),
     api.refillForecasts(),
     api.appointments(),
-  ]).then(([overview, medicinesPage, dosesPage, forecastPage, appointmentsPage]) => ({
+    api.familyProfile(),
+  ]).then(([overview, medicinesPage, dosesPage, forecastPage, appointmentsPage, familyProfile]) => ({
     overview,
     medicines: itemsOf(medicinesPage),
     doses: itemsOf(dosesPage),
     forecasts: itemsOf(forecastPage),
     appointments: itemsOf(appointmentsPage),
+    familyProfile,
   }));
 }
 
@@ -192,6 +194,7 @@ export default function DashboardPage() {
   const overview = data?.overview;
   const medicines = data?.medicines || [];
   const forecasts = data?.forecasts || [];
+  const familyProfile = data?.familyProfile;
   const appointments = (data?.appointments || [])
     .filter((appointment) => new Date(appointment.appointment_datetime) >= new Date() && ["scheduled", "confirmed"].includes(appointment.status))
     .sort((a, b) => new Date(a.appointment_datetime) - new Date(b.appointment_datetime))
@@ -214,7 +217,7 @@ export default function DashboardPage() {
         <>
           <section className="dashboard-hero dashboard-enter" aria-labelledby="dashboard-hero-title">
             <div className="dashboard-hero-copy">
-              <span className="dashboard-hero-eyebrow">{dateLabel.toUpperCase()} <i /> YOUR FAMILY CARE SPACE</span>
+              <span className="dashboard-hero-eyebrow">{dateLabel.toUpperCase()} <i /> {familyProfile?.family_name || "YOUR FAMILY CARE SPACE"}</span>
               <h1 id="dashboard-hero-title">Good care is built together.</h1>
               <p>Keep schedules, refills, and family updates in sync — one thoughtful step at a time.</p>
               <div className="dashboard-hero-actions">

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Bell,
   Check,
@@ -30,12 +31,14 @@ function loadFamily() {
     api.appointments(),
     api.notifications(),
     api.dashboard(),
-  ]).then(([caregivers, medicines, appointments, notifications, dashboard]) => ({
+    api.familyProfile(),
+  ]).then(([caregivers, medicines, appointments, notifications, dashboard, familyProfile]) => ({
     caregivers: itemsOf(caregivers),
     medicines: itemsOf(medicines),
     appointments: itemsOf(appointments),
     notifications: itemsOf(notifications),
     activity: dashboard.recent_family_activity,
+    familyProfile,
   }));
 }
 
@@ -77,7 +80,11 @@ export default function FamilyPage() {
         <>
           <div className="family-summary">
             <div className="summary-icon"><HeartHandshake size={20} /></div>
-            <div><strong>{caregivers.length} {caregivers.length === 1 ? "caregiver" : "caregivers"} in your circle</strong><span>Caregiver records and responsibilities are shared across this family workspace.</span></div>
+            <div>
+              <strong>{data.familyProfile.family_name}</strong>
+              <span>{data.familyProfile.elder_name}{data.familyProfile.elder_age ? ` · ${data.familyProfile.elder_age} years` : ""} · Invite code: {data.familyProfile.invite_code}</span>
+            </div>
+            <Link className="button button-subtle button-small" to="/profile">Edit profile</Link>
             <ShieldCheck size={20} className="summary-shield" />
           </div>
           {caregivers.length ? (

@@ -37,6 +37,11 @@ class Appointment(Base):
     assigned_caregiver_id: Mapped[int | None] = mapped_column(
         ForeignKey("caregivers.id", ondelete="SET NULL"), nullable=True
     )
+    family_id: Mapped[int | None] = mapped_column(
+        ForeignKey("family_profiles.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     status: Mapped[AppointmentStatus] = mapped_column(
         SAEnum(
             AppointmentStatus,

@@ -13,6 +13,7 @@ from app.models import (
     Medicine,
     Notification,
     StockTransaction,
+    FamilyProfile,
 )
 
 
@@ -436,3 +437,63 @@ def test_notification_list_acknowledgement_and_missing_id(api):
     assert repeated.status_code == 200
     assert repeated.json()["acknowledged_at"] == first_acknowledged_at
     assert client.patch("/api/notifications/99999/acknowledge").status_code == 404
+
+
+def test_other_family_records_are_not_listed_or_mutated(api):
+    client = api["client"]
+    session_factory = api["session_factory"]
+    with session_factory.begin() as session:
+        other_profile = FamilyProfile(
+            family_name="Other Family",
+            elder_name="Other Elder",
+            elder_age=80,
+            elder_care_notes=None,
+            invite_code="OTHERFAMILY1",
+            primary_caregiver_id=None,
+        )
+        session.add(other_profile)
+        session.flush()
+        other_caregiver = Caregiver(
+            name="Other Caregiver",
+            relationship="son",
+            email="other.family@example.invalid",
+            family_id=other_profile.id,
+        )
+        session.add(other_caregiver)
+        session.flush()
+        other_medicine = Medicine(
+            name="Other Family Medicine",
+            dosage="1 tablet",
+            units_per_dose=Decimal("1"),
+            frequency_per_day=1,
+            scheduled_times=["10:00"],
+            current_stock=Decimal("10"),
+            refill_threshold=Decimal("2"),
+            assigned_caregiver=other_caregiver,
+            family_id=other_profile.id,
+        )
+        other_appointment = Appointment(
+            title="Other Family Appointment",
+            doctor_name="Dr. Other",
+            location="Other Clinic",
+            appointment_datetime=datetime.now(timezone.utc) + timedelta(days=6),
+            assigned_caregiver=other_caregiver,
+            family_id=other_profile.id,
+            status=AppointmentStatus.SCHEDULED,
+        )
+        session.add_all([other_medicine, other_appointment])
+        session.flush()
+        other_ids = {
+            "medicine": other_medicine.id,
+            "appointment": other_appointment.id,
+        }
+
+    medicines = client.get("/api/medicines").json()
+    assert all(item["id"] != other_ids["medicine"] for item in medicines["items"])
+
+    appointments = client.get("/api/appointments").json()
+    assert all(item["id"] != other_ids["appointment"] for item in appointments["items"])
+
+    assert client.get(f"/api/medicines/{other_ids['medicine']}").status_code == 404
+    assert client.get(f"/api/medicines/{other_ids['medicine']}/stock").status_code == 404
+    assert client.delete(f"/api/appointments/{other_ids['appointment']}").status_code == 404

@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings
 from app.database import Base
-from app.models import Caregiver, Medicine
+from app.models import Caregiver, FamilyProfile, Medicine
 from app.services import assistant_service
 
 
@@ -22,7 +22,22 @@ def _create_mcp_database(path: Path, *, include_medicine: bool = True) -> str:
     Base.metadata.create_all(bind=engine)
     if include_medicine:
         with Session(engine) as session:
-            caregiver = Caregiver(name="Test Caregiver", relationship="daughter")
+            profile = FamilyProfile(
+                family_name="Test Family",
+                elder_name="Test Elder",
+                elder_age=78,
+                elder_care_notes=None,
+                invite_code="TESTFAMILY1",
+            )
+            session.add(profile)
+            session.flush()
+            caregiver = Caregiver(
+                name="Test Caregiver",
+                relationship="daughter",
+                family_id=profile.id,
+            )
+            session.add(caregiver)
+            session.flush()
             medicine = Medicine(
                 name="Seven Day Test Medicine",
                 dosage="1 tablet",
@@ -32,6 +47,7 @@ def _create_mcp_database(path: Path, *, include_medicine: bool = True) -> str:
                 current_stock=Decimal("30"),
                 refill_threshold=Decimal("5"),
                 assigned_caregiver=caregiver,
+                family_id=profile.id,
             )
             session.add(medicine)
             session.commit()
@@ -180,7 +196,7 @@ def test_chat_reports_groq_failure_without_fabricating_success(
         assistant_service.settings, "groq_api_key", SecretStr("test-key-not-real")
     )
 
-    async def actual_forecast_result():
+    async def actual_forecast_result(family_id=None):
         return {
             "total": 0,
             "forecasts": [],
@@ -221,7 +237,7 @@ def test_groq_api_error_logs_sanitized_provider_details(
         assistant_service.settings, "groq_api_key", SecretStr(api_key)
     )
 
-    async def actual_forecast_result():
+    async def actual_forecast_result(family_id=None):
         return {"total": 0, "forecasts": []}
 
     monkeypatch.setattr(
@@ -277,7 +293,7 @@ def test_chat_reports_mcp_failure_without_fabricating_success(api, monkeypatch):
         assistant_service.settings, "groq_api_key", SecretStr("test-key-not-real")
     )
 
-    async def fail_mcp_call():
+    async def fail_mcp_call(family_id=None):
         raise RuntimeError("MCP server unavailable")
 
     monkeypatch.setattr(assistant_service, "invoke_refill_status_tool", fail_mcp_call)

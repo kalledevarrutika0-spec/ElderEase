@@ -17,10 +17,12 @@ def dose_stock_transaction_note(dose_id: int) -> str:
 
 
 def get_medicine_stock(
-    session: Session, medicine_id: int
+    session: Session, medicine_id: int, family_id: int | None = None
 ) -> tuple[Medicine, list[StockTransaction]]:
     medicine = session.get(Medicine, medicine_id)
     if medicine is None:
+        raise NotFoundError(f"Medicine {medicine_id} was not found.")
+    if family_id is not None and medicine.family_id != family_id:
         raise NotFoundError(f"Medicine {medicine_id} was not found.")
     transactions = list(
         session.scalars(
@@ -33,7 +35,10 @@ def get_medicine_stock(
 
 
 def adjust_medicine_stock(
-    session: Session, medicine_id: int, data: StockAdjustmentRequest
+    session: Session,
+    medicine_id: int,
+    data: StockAdjustmentRequest,
+    family_id: int | None = None,
 ) -> tuple[Medicine, list[StockTransaction]]:
     try:
         with session.begin():
@@ -42,8 +47,12 @@ def adjust_medicine_stock(
             )
             if medicine is None:
                 raise NotFoundError(f"Medicine {medicine_id} was not found.")
+            if family_id is not None and medicine.family_id != family_id:
+                raise NotFoundError(f"Medicine {medicine_id} was not found.")
             caregiver = session.get(Caregiver, data.recorded_by)
             if caregiver is None:
+                raise NotFoundError(f"Caregiver {data.recorded_by} was not found.")
+            if family_id is not None and caregiver.family_id != family_id:
                 raise NotFoundError(f"Caregiver {data.recorded_by} was not found.")
 
             update_result = session.execute(

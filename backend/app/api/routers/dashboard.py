@@ -5,6 +5,8 @@ from app.api.responses import COMMON_ERROR_RESPONSES
 from app.database import get_db
 from app.schemas.dashboard import DashboardOverview
 from app.services.dashboard_service import get_dashboard_overview
+from app.core.auth import get_family_member
+from app.models import FamilyMember
 
 router = APIRouter(
     prefix="/dashboard",
@@ -20,5 +22,6 @@ router = APIRouter(
 )
 def read_dashboard_overview(
     session: Session = Depends(get_db),
+    member: FamilyMember = Depends(get_family_member),
 ) -> DashboardOverview:
-    return get_dashboard_overview(session)
+    return get_dashboard_overview(session, member.family_id)

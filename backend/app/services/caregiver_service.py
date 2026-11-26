@@ -6,14 +6,19 @@ from app.services.errors import NotFoundError
 
 
 def list_caregivers(
-    session: Session, offset: int, limit: int
+    session: Session, offset: int, limit: int, family_id: int | None = None
 ) -> tuple[list[Caregiver], int]:
+    statement = select(Caregiver)
+    count_statement = select(func.count()).select_from(Caregiver)
+    if family_id is not None:
+        statement = statement.where(Caregiver.family_id == family_id)
+        count_statement = count_statement.where(Caregiver.family_id == family_id)
     items = list(
         session.scalars(
-            select(Caregiver).order_by(Caregiver.id).offset(offset).limit(limit)
+            statement.order_by(Caregiver.id).offset(offset).limit(limit)
         )
     )
-    total = int(session.scalar(select(func.count()).select_from(Caregiver)))
+    total = int(session.scalar(count_statement))
     return items, total
 
 

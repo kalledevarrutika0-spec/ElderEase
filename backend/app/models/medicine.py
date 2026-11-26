@@ -52,6 +52,11 @@ class Medicine(Base):
     assigned_caregiver_id: Mapped[int | None] = mapped_column(
         ForeignKey("caregivers.id", ondelete="SET NULL"), nullable=True
     )
+    family_id: Mapped[int | None] = mapped_column(
+        ForeignKey("family_profiles.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

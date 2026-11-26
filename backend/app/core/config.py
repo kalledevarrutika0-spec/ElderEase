@@ -7,6 +7,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "Elderease API"
     database_url: str = "sqlite:///./data/elderease.db"
+    supabase_url: str | None = None
+    supabase_jwt_secret: SecretStr | None = None
     groq_api_key: SecretStr | None = None
     groq_base_url: str = "https://api.groq.com/openai/v1"
     groq_model: str = "openai/gpt-oss-20b"

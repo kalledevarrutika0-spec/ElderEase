@@ -21,6 +21,8 @@ from app.services.refill_engine import (
     get_refill_forecast,
     list_refill_forecasts,
 )
+from app.core.auth import get_family_member
+from app.models import FamilyMember
 
 router = APIRouter(
     prefix="/medicines",
@@ -34,8 +36,11 @@ def read_medicines(
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=500),
     session: Session = Depends(get_db),
+    member: FamilyMember = Depends(get_family_member),
 ) -> MedicinePage:
-    items, total = list_medicines(session, offset, limit)
+    items, total = list_medicines(
+        session, offset, limit, member.family_id
+    )
     return MedicinePage(items=items, total=total, offset=offset, limit=limit)
 
 
@@ -48,8 +53,11 @@ def read_medicines(
 def add_medicine(
     data: MedicineCreate,
     session: Session = Depends(get_db),
+    member: FamilyMember = Depends(get_family_member),
 ) -> MedicineRead:
-    return create_medicine(session, data)
+    caregiver_id = data.assigned_caregiver_id
+    medicine = create_medicine(session, data, member.family_id)
+    return medicine
 
 
 @router.get(
@@ -61,8 +69,11 @@ def read_refill_forecasts(
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=500),
     session: Session = Depends(get_db),
+    member: FamilyMember = Depends(get_family_member),
 ) -> RefillForecastPage:
-    forecasts, total = list_refill_forecasts(session, offset, limit)
+    forecasts, total = list_refill_forecasts(
+        session, offset, limit, family_id=member.family_id
+    )
     return RefillForecastPage(
         items=forecasts,
         total=total,
@@ -79,8 +90,9 @@ def read_refill_forecasts(
 def read_medicine_refill_forecast(
     medicine_id: int = Path(gt=0),
     session: Session = Depends(get_db),
+    member: FamilyMember = Depends(get_family_member),
 ) -> RefillForecast:
-    return get_refill_forecast(session, medicine_id)
+    return get_refill_forecast(session, medicine_id, family_id=member.family_id)
 
 
 @router.get(
@@ -91,8 +103,13 @@ def read_medicine_refill_forecast(
 def read_medicine(
     medicine_id: int = Path(gt=0),
     session: Session = Depends(get_db),
+    member: FamilyMember = Depends(get_family_member),
 ) -> MedicineRead:
-    return get_medicine(session, medicine_id)
+    medicine = get_medicine(session, medicine_id)
+    if medicine.family_id != member.family_id:
+        from app.services.errors import NotFoundError
+        raise NotFoundError(f"Medicine {medicine_id} was not found.")
+    return medicine
 
 
 @router.put(
@@ -104,8 +121,9 @@ def replace_medicine(
     data: MedicineUpdate,
     medicine_id: int = Path(gt=0),
     session: Session = Depends(get_db),
+    member: FamilyMember = Depends(get_family_member),
 ) -> MedicineRead:
-    return update_medicine(session, medicine_id, data)
+    return update_medicine(session, medicine_id, data, member.family_id)
 
 
 @router.delete(
@@ -116,6 +134,7 @@ def replace_medicine(
 def remove_medicine(
     medicine_id: int = Path(gt=0),
     session: Session = Depends(get_db),
+    member: FamilyMember = Depends(get_family_member),
 ) -> Response:
-    delete_medicine(session, medicine_id)
+    delete_medicine(session, medicine_id, member.family_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

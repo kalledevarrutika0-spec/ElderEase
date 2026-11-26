@@ -18,12 +18,19 @@ from app.services.stock_service import dose_stock_transaction_note
 
 
 def list_today_doses(
-    session: Session, offset: int, limit: int
+    session: Session, offset: int, limit: int, family_id: int | None = None
 ) -> tuple[list[DoseLog], int]:
     start, end = utc_day_bounds(utc_now())
+    statement = select(DoseLog)
+    count_statement = select(func.count()).select_from(DoseLog)
+    if family_id is not None:
+        statement = statement.join(DoseLog.medicine).where(Medicine.family_id == family_id)
+        count_statement = (
+            count_statement.join(DoseLog.medicine).where(Medicine.family_id == family_id)
+        )
     items = list(
         session.scalars(
-            select(DoseLog)
+            statement
             .where(DoseLog.scheduled_at >= start, DoseLog.scheduled_at < end)
             .order_by(DoseLog.scheduled_at, DoseLog.id)
             .offset(offset)
@@ -32,15 +39,19 @@ def list_today_doses(
     )
     total = int(
         session.scalar(
-            select(func.count())
-            .select_from(DoseLog)
+            count_statement
             .where(DoseLog.scheduled_at >= start, DoseLog.scheduled_at < end)
         )
     )
     return items, total
 
 
-def log_dose(session: Session, dose_id: int, data: DoseLogRequest) -> DoseLog:
+def log_dose(
+    session: Session,
+    dose_id: int,
+    data: DoseLogRequest,
+    family_id: int | None = None,
+) -> DoseLog:
     try:
         with session.begin():
             dose = session.scalar(
@@ -48,6 +59,10 @@ def log_dose(session: Session, dose_id: int, data: DoseLogRequest) -> DoseLog:
             )
             if dose is None:
                 raise NotFoundError(f"Dose log {dose_id} was not found.")
+            if family_id is not None:
+                medicine = session.get(Medicine, dose.medicine_id)
+                if medicine is None or medicine.family_id != family_id:
+                    raise NotFoundError(f"Dose log {dose_id} was not found.")
 
             if (
                 dose.status == DoseStatus.CONFIRMED

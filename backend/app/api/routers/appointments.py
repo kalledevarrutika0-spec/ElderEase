@@ -15,6 +15,9 @@ from app.services.appointment_service import (
     list_appointments,
     update_appointment,
 )
+from app.core.auth import get_family_member
+from app.models import Appointment, FamilyMember
+from app.services.caregiver_service import get_caregiver
 
 router = APIRouter(
     prefix="/appointments",
@@ -28,8 +31,11 @@ def read_appointments(
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=500),
     session: Session = Depends(get_db),
+    member: FamilyMember = Depends(get_family_member),
 ) -> AppointmentPage:
-    items, total = list_appointments(session, offset, limit)
+    items, total = list_appointments(
+        session, offset, limit, member.family_id
+    )
     return AppointmentPage(items=items, total=total, offset=offset, limit=limit)
 
 
@@ -42,8 +48,9 @@ def read_appointments(
 def add_appointment(
     data: AppointmentCreate,
     session: Session = Depends(get_db),
+    member: FamilyMember = Depends(get_family_member),
 ) -> AppointmentRead:
-    return create_appointment(session, data)
+    return create_appointment(session, data, member.family_id)
 
 
 @router.put(
@@ -55,8 +62,9 @@ def replace_appointment(
     data: AppointmentUpdate,
     appointment_id: int = Path(gt=0),
     session: Session = Depends(get_db),
+    member: FamilyMember = Depends(get_family_member),
 ) -> AppointmentRead:
-    return update_appointment(session, appointment_id, data)
+    return update_appointment(session, appointment_id, data, member.family_id)
 
 
 @router.delete(
@@ -67,6 +75,7 @@ def replace_appointment(
 def remove_appointment(
     appointment_id: int = Path(gt=0),
     session: Session = Depends(get_db),
+    member: FamilyMember = Depends(get_family_member),
 ) -> Response:
-    delete_appointment(session, appointment_id)
+    delete_appointment(session, appointment_id, member.family_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

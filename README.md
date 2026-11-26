@@ -143,6 +143,32 @@ python -m app.mcp.server
 
 The MCP server uses the Python MCP SDK over stdio and exposes health and refill-status tools that reuse backend service functions. It is a separate interface from the REST API; the assistant connects to it through an MCP client.
 
+## Family profile MVP and Supabase Auth
+
+The frontend uses Supabase Auth for login and signup. Configure:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+The backend verifies Supabase-issued bearer tokens. Configure one of:
+
+- `SUPABASE_URL=https://your-project.supabase.co`
+- `SUPABASE_JWT_SECRET=...` for legacy JWT-secret verification
+
+The `family_profiles`, `family_members`, and caregiver family associations require the family migration.
+
+For local SQLite:
+
+```powershell
+cd backend
+python -m app.database.init_db
+python -m app.database.migrate_family_profile
+```
+
+For Supabase/PostgreSQL, run `backend/migrations/001_family_profile.sql` once in the Supabase SQL Editor.
+
+After login, create a family profile or join with an invite code. The primary caregiver can edit the profile and share the invite code with another caregiver. Supabase anon keys and publishable keys are safe for frontend configuration; never place a Supabase service-role key in Vite environment variables.
+
 ## Configuration and scope
 
 - Copy each `.env.example` to `.env` and supply credentials locally. Never commit `.env` files.

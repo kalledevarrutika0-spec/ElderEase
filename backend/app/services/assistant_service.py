@@ -59,7 +59,10 @@ def _provider_error_details(
     return status_code, code, error_type, _sanitize_log_value(message, secret)
 
 
-async def chat_about_refills(message: str) -> dict[str, Any]:
+async def chat_about_refills(
+    message: str,
+    family_id: int | None = None,
+) -> dict[str, Any]:
     api_key = settings.groq_api_key
     if (
         api_key is None
@@ -72,7 +75,7 @@ async def chat_about_refills(message: str) -> dict[str, Any]:
 
     try:
         tool_result = await asyncio.wait_for(
-            invoke_refill_status_tool(), timeout=30
+            invoke_refill_status_tool(family_id), timeout=30
         )
     except Exception as exc:
         logger.exception("The refill MCP tool workflow failed.")
@@ -158,7 +161,9 @@ async def chat_about_refills(message: str) -> dict[str, Any]:
     }
 
 
-async def invoke_refill_status_tool() -> dict[str, Any]:
+async def invoke_refill_status_tool(
+    family_id: int | None = None,
+) -> dict[str, Any]:
     server = StdioServerParameters(
         command=sys.executable,
         args=["-m", "app.mcp.server"],
@@ -177,7 +182,10 @@ async def invoke_refill_status_tool() -> dict[str, Any]:
                     "The MCP server does not expose check_refill_status."
                 )
 
-            result = await session.call_tool(REFILL_TOOL_NAME, arguments={})
+            result = await session.call_tool(
+                REFILL_TOOL_NAME,
+                arguments={"family_id": family_id} if family_id is not None else {},
+            )
             if result.isError:
                 details = "; ".join(
                     content.text
